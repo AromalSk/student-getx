@@ -1,0 +1,210 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:students_add/db/adapter/database_adapter.dart';
+import 'package:students_add/db/adapter/hiveservice.dart';
+import 'package:students_add/db/functions/db_functions.dart';
+import 'package:students_add/db/models/data_model.dart';
+import 'package:students_add/screen/home/home_screen.dart';
+
+
+
+class AddStudentWidget extends StatefulWidget {
+   AddStudentWidget({Key? key}) : super(key: key);
+
+  @override
+  State<AddStudentWidget> createState() => _AddStudentWidgetState();
+}
+
+class _AddStudentWidgetState extends State<AddStudentWidget> {
+DatabaseAdapter adapter = HiveService();
+
+   File? _image;
+
+  final _nameController = TextEditingController();
+
+  final _ageController = TextEditingController();
+
+  final _subjectController = TextEditingController();
+
+  final _phoneConetroller = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () {
+              _pickImage();
+            },
+            child: CircleAvatar(
+              radius: 50,
+              child: SizedBox.fromSize(
+                size: Size.fromRadius(50),
+                child: ClipOval(child: 
+                _image!=null ? Image.file(_image!,width: 50,height: 50,fit: BoxFit.cover,) :
+                Image.asset('assets/images/person.jpg',fit: BoxFit.cover,)
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20,),
+          TextFormField(
+            controller: _nameController,
+            decoration:
+                const InputDecoration(border: OutlineInputBorder(), hintText: 'Name'),
+          ),
+          const SizedBox(
+            height: 15,
+          ),
+           TextFormField(
+            keyboardType: TextInputType.number,
+            controller: _ageController,
+            decoration:
+                const InputDecoration(border: OutlineInputBorder(), hintText: 'Age'),
+          ),
+           const SizedBox(
+            height: 15,
+          ),
+           TextFormField(
+            controller: _subjectController,
+            decoration:
+                const InputDecoration(border: OutlineInputBorder(), hintText: 'Subject'),
+          ),
+          const SizedBox(
+            height: 15,
+          ),
+           TextFormField(
+            controller: _phoneConetroller,
+            decoration:
+                const InputDecoration(border: OutlineInputBorder(), hintText: 'Phone number'),
+          ),
+          const SizedBox(
+            height: 15,
+          ),
+          ElevatedButton(onPressed: (){
+          Navigator.of(context).push(MaterialPageRoute(builder: (ctx){
+            return const HomeScreen();
+          }));
+            onAddStudentButtonClicked();
+          }, child: const Text('Click to save'))
+          
+        ],
+
+      ),
+    );
+  }
+
+  Future <void> onAddStudentButtonClicked()async{
+
+  final _name = _nameController.text.trim();
+  final _age = _ageController.text.trim();
+  final _subject = _subjectController.text.trim();
+  final _phone = _phoneConetroller.text.trim();
+  if (_name.isEmpty ||  _age.isEmpty ){
+    return;
+  }else{
+
+    
+       final _student = StudentModel(name: _name, age: _age );
+  addStudent(_student);
+      
+  }
+ }
+
+ Future<void> getImage ()async{
+  final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+  if (image == null) {
+    return;
+  }
+
+  final imageTemporary = File(image.path);
+  setState(() {
+    this._image =imageTemporary;
+  });
+ }
+
+ 
+  Future<List<Uint8List>?> _readImagesFromDatabase() async {
+    return adapter.getImages();
+  }
+
+  Future<void> _pickImage() async {
+    ImagePicker imagePicker = ImagePicker();
+    XFile? image = await imagePicker.pickImage(source: ImageSource.gallery);
+    if (image == null) {
+      return;
+    }
+    Uint8List imageBytes =  await image.readAsBytes();
+    adapter.storeImage(imageBytes);  
+  }
+
+ 
+}
+
+
+
+
+
+
+//Lsit student widget ??
+
+import 'package:flutter/material.dart';
+import 'package:students_add/db/functions/db_functions.dart';
+import 'package:students_add/db/models/data_model.dart';
+
+class ListStudentWidget extends StatelessWidget {
+  const ListStudentWidget({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<List<StudentModel>>(
+      valueListenable: studentListNotifier,
+      builder: (BuildContext ctx, List<StudentModel> studentList, Widget? child){
+        return ListView.separated(
+          itemBuilder: (ctx, index){
+            final data = studentList[index];
+            return ListTile(
+              leading: CircleAvatar(
+                radius: 30,
+                backgroundColor: Color.fromARGB(255, 251, 58, 58)),
+              title: Text(data.name),
+              subtitle: Text(data.age.toString()),
+              trailing: SizedBox(
+                width: 100,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(onPressed: (){}, icon: Icon(Icons.edit)),
+                    IconButton(
+                      onPressed: (){
+                        if (data.key != null) {
+                          try {
+                            deleteStudent(data.key!);
+                          } catch (e) {
+                            print('Failed to delete student: $e');
+                          }
+                        } else {
+                          print("data id is null");
+                        }
+                      },
+                      icon: const Icon(Icons.delete,color: Colors.red,),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+          separatorBuilder: (ctx, index) => const Divider(),
+          itemCount: studentList.length,
+        );
+      },
+    );
+  }
+}
+
+
