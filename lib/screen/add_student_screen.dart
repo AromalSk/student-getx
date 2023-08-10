@@ -8,7 +8,7 @@ class AddStudentsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Scaffold(resizeToAvoidBottomInset: false,
       body: SafeArea(child: SingleChildScrollView(
         child: Column(
           children: [

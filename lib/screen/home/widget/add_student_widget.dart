@@ -3,22 +3,18 @@ import 'dart:io';
 
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-
 import 'package:students_add/db/functions/db_functions.dart';
 import 'package:students_add/db/models/data_model.dart';
+import 'package:students_add/screen/home/home_screen.dart';
 
 
-class AddStudentWidget extends StatefulWidget {
+class AddStudentWidget extends StatelessWidget {
   AddStudentWidget({Key? key}) : super(key: key);
 
-  @override
-  State<AddStudentWidget> createState() => _AddStudentWidgetState();
-}
+ StudentController myStudent = Get.put(StudentController());
 
-class _AddStudentWidgetState extends State<AddStudentWidget> {
-  File? SelectedImage;
-  
 
   final _nameController = TextEditingController();
 
@@ -32,35 +28,60 @@ class _AddStudentWidgetState extends State<AddStudentWidget> {
 
   @override
   Widget build(BuildContext context) {
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Form(
         key: _formKey,
         child: Column(
           children: [
+            SizedBox(height: 150,),
             GestureDetector(
               onTap: () {
-                showImage();
+                
+                pickImage();
               },
-              child: CircleAvatar(
-                radius: 50,
-                child: SizedBox.fromSize(
-                  size: Size.fromRadius(50),
-                  child: ClipOval(
-                      child: SelectedImage != null
-                          ? Image.file(
-                              SelectedImage!,
-                              width: 50,
-                              height: 50,
-                              fit: BoxFit.cover,
-                            )
-                          : Image.asset(
-                              'assets/images/personkoi.jpg',
-                              fit: BoxFit.cover,
-                            )),
-                ),
-              ),
-            ),
+              child:
+                CircleAvatar(
+                  radius: 50,
+                  child: 
+                  SizedBox.fromSize(
+                    size: Size.fromRadius(50),
+                    child:
+                    
+                     ClipOval(
+                        child:
+                        Obx(() {
+                            File img = File(myStudent.imagePath.value);
+                         if (myStudent.isPicked.value == true) {
+                           return  Image.file(
+                             img,
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                              );
+                         }  else{
+                          return Image.asset(
+                                'assets/images/personkoi.jpg',
+                                fit: BoxFit.cover,
+                              );
+                         }
+                        
+                              //  if (myStudent.isPicked.value) {
+                              //   File img =
+                              //       File(myStudent.imagePath.value);
+                              //   return Image.file(img);
+                              // } else {
+                              //   return Image.asset('assets/images/personkoi.jpg');
+                              // }
+                         
+                        },)
+                       ),
+                  ),
+                )
+           )
+                 
+        ,
             const SizedBox(
               height: 20,
             ),
@@ -129,9 +150,15 @@ class _AddStudentWidgetState extends State<AddStudentWidget> {
             ),
             ElevatedButton(
                 onPressed: () {
+                 
                   if (_formKey.currentState!.validate()) {
                     onAddStudentButtonClicked();
-                    Navigator.of(context).pop();
+                    myStudent.getallStudents();
+                    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) {
+                      return 
+                      HomeScreen();
+                    },));
+                     
                   }
                 },
                 child: const Text('Click to save'))
@@ -142,6 +169,7 @@ class _AddStudentWidgetState extends State<AddStudentWidget> {
   }
 
   Future<void> onAddStudentButtonClicked() async {
+   
     final _name = _nameController.text.trim();
     final _age = _ageController.text.trim();
     final _subject = _subjectController.text.trim();
@@ -154,37 +182,21 @@ class _AddStudentWidgetState extends State<AddStudentWidget> {
           age: _age,
           subject: _subject,
           phone: _phone,
-          image: SelectedImage?.path ?? 'no-img');
-      addStudent(_student);
+          image:  myStudent.imagePath.value);
+     myStudent.addStudent(_student);
     }
   }
 
-  Future<void> getImage() async {
-    var image;
-    image = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, imageQuality: 25);
-
-    if (image != null) {
-      setState(() {
-        image = File(image.path);
-      
-      });
+  Future<void> pickImage() async {
+    final imagePicked =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (imagePicked != null) {
+      myStudent.setPickedImage(imagePicked.path, true);
     }
   }
 
-  Future<void> showImage() async {
-    final imagess = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (imagess == null) {
-      return;
-    }
 
-    final imageTemporary = File(imagess.path);
-    setState(() {
-      SelectedImage = imageTemporary;
-    });
-  }
 
-//  String? _validating (String? value){
 
-//   }
 }
+
